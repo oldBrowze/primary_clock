@@ -1,5 +1,6 @@
 #include "iarduino_RTC-2.0.0/src/iarduino_RTC.h"
 #include "GyverTM1637.h"
+#include "EEPROM.h"
 
 /* 7, 8, 9 - пины RST, CLK, DAT*/
 iarduino_RTC timer(RTC_DS1302, 7, 8, 9);
@@ -103,9 +104,6 @@ void loop()
   }
 
   //блок вывода на экран
-  display_clock.displayClock(timer.hours, timer.minutes);  // вывести часы и минуты
-
-
   //change_minutes();
   //delay(3000);
   //change_hours();
@@ -116,13 +114,15 @@ void loop()
     change_minutes();
   }
   */
-  /*
   if(timer.minutes > min)
   {
     change_minutes();
     min = timer.minutes;
   }
-  */
+  display_clock.displayClock(timer.hours, timer.minutes);  // вывести часы и минуты
+
+  //EEPROM.update(1, timer.minutes);
+  //EEPROM.update(2, timer.Hours);
 }
 void set_IN(bool state)
 {
@@ -130,11 +130,6 @@ void set_IN(bool state)
   digitalWrite(IN2, state);
 }
 
-void set_IN111(bool state)
-{
-  digitalWrite(IN1, state);
-  digitalWrite(IN2, state);
-}
 void change_minutes()
 {
   //set_EN(HIGH);
