@@ -3,16 +3,25 @@
 #include "EEPROM.h"
 
 /* 7, 8, 9 - пины RST, CLK, DAT*/
-iarduino_RTC timer(RTC_DS1302, 7, 8, 9);
-GyverTM1637 display_clock(2, 3);
+/* 2, 3 - пины CLK, DIO */
 
-int min = 0;
-
-enum pins : uint8_t 
+enum pin_map : uint8_t 
 {
+  EN1 = 4,
   IN1 = 6,
   IN2 = 5,
+  RTC_rst = 7,
+  RTC_clk = 8,
+  RTC_dat = 9,
+  TM1637_clk = 2,
+  TM1637_dio = 3,
+  KEY1 = 12,
+  KEY2 = 11
 };
+
+int min = 0;
+iarduino_RTC timer(RTC_DS1302, RTC_rst, RTC_clk, RTC_dat);
+GyverTM1637 display_clock(TM1637_clk, TM1637_dio);
 
 void set_EN(bool);
 void change_hours();
@@ -27,23 +36,26 @@ void setup()
 {
   Serial.begin(9600);
 
-  pinMode(12, INPUT_PULLUP); // перевод минут
-  pinMode(11, INPUT_PULLUP); // перевод часа
+  pinMode(KEY1, INPUT_PULLUP); // перевод минут
+  pinMode(KEY2, INPUT_PULLUP); // перевод часа
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(EN1, OUTPUT);
 
-  set_IN(LOW);
-  
+  digitalWrite(EN1, LOW);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
   
   delay(20);
   
   timer.begin();
-  timer.settime(0, 21, 01, 30, 6, 23, 5);
-  //change_minutes();
+  timer.settime(0, 00, 12, 9, 7, 23, -1);
 
   display_clock.clear();        // очистить
   display_clock.brightness(7);  // яркость 0-7
   display_clock.point(1);
-  //display_clock.displayClock(16, 37);  // вывести часы и минуты
-
+  //display_clock.displayClock(18, 33);  // вывести часы и минуты
+  min = timer.minutes;
 /*
   Serial.println( timer.seconds ); // выводим количество секунд
   Serial.println( timer.minutes ); // выводим количество минут
@@ -55,13 +67,15 @@ void setup()
   Serial.println( timer.month   ); // выводим текущий месяц
   Serial.println( timer.year    ); // выводим текущий год
   Serial.println( min    ); // выводим количество секунд прошедших с начала эпохи Unix
-*/
+  */
 }
 
 void loop() 
 {
   timer.gettime();
-/* Обработка лицевых кнопок*/
+  //change_minutes();
+  //delay(1000);
+  
   int 
     is_key_pressed1 = !digitalRead(12),
     is_key_pressed2 = !digitalRead(11);
@@ -69,7 +83,7 @@ void loop()
   if(is_key_pressed1 && !value_key1)
   {
     delay(10);
-    Serial.println("Левая кнопка нажата");
+    //Serial.println("Левая кнопка нажата");
     value_key1 = true; 
 
     //действие по переводу минуты
@@ -89,7 +103,7 @@ void loop()
   if(is_key_pressed2 && !value_key2)
   {
     delay(10);
-    Serial.println("Правая кнопка нажата");
+    //Serial.println("Правая кнопка нажата");
     value_key2 = true;
 
     //действие по переводу часа 
@@ -102,54 +116,27 @@ void loop()
     //Serial.println("Правая кнопка отпущена");
     value_key2 = false;
   }
-
-  //блок вывода на экран
-  //change_minutes();
-  //delay(3000);
-  //change_hours();
-
-  /*
-  if(millis() % 5000 == 0)
-  {
-    change_minutes();
-  }
-  */
   if(timer.minutes > min)
   {
     change_minutes();
     min = timer.minutes;
   }
   display_clock.displayClock(timer.hours, timer.minutes);  // вывести часы и минуты
-
+  
   //EEPROM.update(1, timer.minutes);
   //EEPROM.update(2, timer.Hours);
 }
-void set_IN(bool state)
-{
-  digitalWrite(IN1, state);
-  digitalWrite(IN2, state);
-}
-
 void change_minutes()
 {
-  //set_EN(HIGH);
-  //delay(100);
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  delay(100);
+  polarity = !polarity;
 
   digitalWrite(IN1, polarity);
   digitalWrite(IN2, !polarity);
-  
-  //delay(100);
-  
-  //digitalWrite(LPWM_pin, LOW);
-  //digitalWrite(RPWM_pin, LOW);
-  
-  polarity = !polarity;
-  
-  //set_EN(LOW);
-  //delay(100);
+  delay(10);
+
+  digitalWrite(EN1, HIGH);
+  delay(500);
+  digitalWrite(EN1, LOW);
 }
 void change_hours()
 {
@@ -158,7 +145,6 @@ void change_hours()
     change_minutes();
     delay(500);
   }
-  delay(5000);
 }
 
 
